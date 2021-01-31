@@ -1,0 +1,547 @@
+---
+title: "exercise_2"
+author: "Claudia Quintana Wong"
+date: "24/1/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Exercise 2
+
+Comenzaremos con la lectura y carga de los datos en memoria. En este trabajo analizaremos el conjunto de datos BostonHousing, el cual contiene datos de vivienda para 506 secciones censales de Boston del censo de 1970. El *dataset*
+contiene 14 variables y 506 observaciones.
+
+```{r}
+library(mlbench)
+library(dplyr)
+library(leaps)
+library(lmtest)
+library(nortest)
+
+df <- BostonHousing
+
+print(colnames(df))
+
+print(ncol(BostonHousing))
+
+print(nrow(BostonHousing))
+
+```
+### Análisis descriptivo
+
+Se comienza el análisis exploratorio de los datos con el fin de conocer los datos y descubrir *insights* que faciliten el desarrollo de los modelos predictivos.
+
+```{r}
+
+glimpse(BostonHousing)
+
+```
+
+#### Estadísticos de posición
+
+```{r}
+
+summary(BostonHousing)
+
+```
+
+El resumen de los datos nos da como información los estadísticos de posición lo que nos brinda un panorama general de cada de las variables e identificar cual pudiera no tener una distribución normal y la existencia de valores atípicos.
+
+
+```{r}
+
+hist(BostonHousing$crim)
+
+```
+
+```{r}
+
+hist(BostonHousing$zn)
+
+```
+```{r}
+
+hist(BostonHousing$indus)
+
+```
+
+```{r}
+
+table(BostonHousing$chas)
+
+```
+
+```{r}
+
+hist(BostonHousing$nox)
+
+```
+
+El gráfico indica que la variable rm, que representa la cantidad de habitaciones promedio por vivienda, tiene una distribución normal.
+
+```{r}
+
+hist(BostonHousing$rm)
+
+```
+
+
+```{r}
+
+hist(BostonHousing$dis)
+
+```
+
+```{r}
+
+hist(BostonHousing$b)
+
+```
+
+```{r}
+
+hist(BostonHousing$medv)
+
+```
+
+A continuación se muestran graficos de dispersión dibujados teniendo en cuenta la variable *medv* con respecto al resto de variables. Este tipo de visualización nos permite observar la existencia de relaciones entre variables.
+
+```{r}
+for(i in 1:13){
+  plot( BostonHousing[,i], BostonHousing$medv, type='p', col='blue', xlab = names(BostonHousing)[i], ylab = 'medv' )
+}
+```
+
+La siguiente imagen muestra el índice de correlación lineal existente entre as diferentes variables.
+
+```{r}
+ 
+library(GGally)
+ggcorr(BostonHousing, label = T)
+
+```
+ 
+Se puede notar que las variables *rad* y *tax* presentan una alta correlación positiva.
+
+#### Estadísticos de dispersión
+
+```{r}
+numeric_cols = sapply(BostonHousing, is.numeric)
+ 
+#rango intercuartilico muestral RI
+apply(X = BostonHousing[, numeric_cols], MARGIN = 2, FUN = IQR, na.rm = T)
+
+```
+
+```{r}
+
+#varianza
+apply(X = BostonHousing[, numeric_cols], MARGIN = 2, FUN = var, na.rm = T)
+
+```
+
+```{r}
+
+#desviación típica
+apply(X = BostonHousing[, numeric_cols], MARGIN = 2, FUN = sd, na.rm = T)
+
+```
+
+
+#### Estadisticos de forma
+
+```{r}
+
+library(e1071)
+apply(X = BostonHousing[, numeric_cols], MARGIN = 2, FUN = skewness, na.rm = T)
+
+```
+
+```{r}
+
+apply(X = BostonHousing[, numeric_cols], MARGIN = 2, FUN = kurtosis, na.rm = T)
+
+```
+
+### Modelo
+
+El ojetivo es crear un modelo de regresión lineal que permita expresar la variable *medv* en función de un subconjunto del resto de vaiables.
+
+Empezaremos con el modelo lineal donde la variable dependiente esté expresada en función del resto de variables.
+
+```{r}
+
+full_lm <- lm(medv ~ ., data = BostonHousing)
+summary(full_lm)
+
+```
+Este modelo expresado en función de todas las variables alcanza un $$R^2$$ de 0.73. Asimismo, tener un p-value tan pequeño indica que cumple con el test de linealidad, por lo que no puede aceptar la hipòtesis que de todas los coeficientes de los predictores sean 0. 
+
+
+Con el fin de encontrar el modelo que mejor se ajuste a los datos de nuestro problema vamos a recurrir a la selección de modelos empleando una búsqueda exhaustiva a través del método *best subset selection*.
+
+
+```{r}
+
+exhaustive_model <- regsubsets(medv ~ ., data = BostonHousing)
+summary(exhaustive_model)
+
+```
+Para analizar los $$R^2$$
+
+```{r}
+
+plot(summary(exhaustive_model)$rsq, type = 'l')
+
+```
+
+```{r}
+
+plot(summary(exhaustive_model)$adjr2, type = 'l')
+
+```
+
+Por el criterio “del codo”, tiene sentido tomar 3 o 5 variables. Inicialmente, intentaremos con 5 variables. Tanto los valores de $$R^2$$ como los de $$R^2$$ ajustado nos llevan a la misma conclusión.
+
+El análisis exhaustivo nos dice que el mejor modelo que emplea 5 variables el aquel que tiene en cuenta los predictores *nox*, *rm*, *dist*, *ptratio* y *lstat*.
+
+```{r}
+mpg_fit_wyo <- lm(mpg ~ weight + year + origin, data = auto)
+
+lm_5 <- lm(medv ~ nox + rm + dis + ptratio + lstat, data = BostonHousing)
+summary(lm_5)
+
+```
+```{r}
+
+plot(BostonHousing$medv, lm_5$residuals, col = 'blue', xlab = 'medv', ylab = 'residuals' )
+
+```
+
+En el gráfico se puede observar que los errores en su mayoría son simétricos respecto a la recta y = 0, sin embargo, para valores de medv altos el modelo comete un mayor error, tiende a equivocarse por encima del valor real.
+
+Asimismo, el gráfico sugiere que pudieran existir outliers, por lo cual será posible comprobar a través de un boxplot de los residuos.
+
+
+```{r}
+
+boxplot(lm_5$residuals)
+
+```
+
+Repetiremos una busqueda más exhaustiva pero utilizando el método *formward*. 
+
+```{r}
+
+model_forward <- regsubsets(medv ~ . , data = BostonHousing, nvmax = 8, method = 'forward')
+summary(model_forward)
+
+```
+Analizamos los valores de $$R^2$$ y $$R^2$$ ajustado.
+
+```{r}
+
+plot(summary(model_forward)$rsq, type = 'l')
+
+```
+
+
+```{r}
+
+plot(summary(model_forward)$adjr2, type = 'l')
+
+```
+
+Este método arroja resultados bastante parecidos al anterior por lo tanto conservamos el mismo modelo e intentaremos una mejora mediante transformaciones de variables.
+
+Durante el análisis estadístico, en el gráfico de dispersión de la variable *medv* en función de *lstat*, la disposición de los puntos sugiere que la relación entre estas variables pudiera ser no lineal. Por lo tanto, vamos a intentar adicionar la variable $$lstat^2$$.
+
+```{r}
+
+lm_5_transformed <- update(lm_5, . ~  . + I(lstat^2))
+summary(lm_5_transformed)
+
+```
+
+Con la transformación cuadrática de la variable $$lstat^2$$ se ha logrado aumentar el valor del $$R^2$$ ajustado de 0.7052 a 0.7541. Representemos el gráfico de residuos.
+
+```{r}
+
+plot(BostonHousing$medv, lm_5_transformed$residuals, col = 'blue', xlab = 'medv', ylab = 'residuals' )
+
+```
+Aún se observan la existencia de outliers, aunque la cantidad es menor respecto al modelo anterior. Así lo confirma el gráfico de bigotes.
+
+
+```{r}
+
+boxplot(lm_5_transformed$residuals)
+
+```
+
+Transformemos otra de las variables originales.
+
+
+```{r}
+
+lm_5_transformed_2 <- update(lm_5_transformed, . ~  . + I(rm^2))
+summary(lm_5_transformed_2)
+
+```
+La inclusión de una transformación cuadrática sobre la variable original *rm* ha logrado elevar el $$R^2$$ a 0.7907 y el $$R^2$$ ajustado a 0.7877 aún después de penalizar la adición de una nueva variable. 
+
+Otra transformación posible para mejorar la métrica sería la eliminación de alguna de las variables, sin embargo, los valores t alcanzados por el modelo en cada una de las variables, al ser muy pequeños, nos indica que podemos rechazar la hipótesis de nulidad según la cuál el verdadero estimado es cero para cada uno de los predictores.
+
+
+Representemos los residuos para verificar la media de los errores.
+
+
+```{r}
+
+plot(BostonHousing$medv, lm_5_transformed_2$residuals, col = 'blue', xlab = 'medv', ylab = 'residuals' )
+
+```
+Excepto por los outliers, este es el diagrama de residuos que se debería esperar. Comrobemos la existencia de high-leverage points.
+
+```{r}
+
+plot(hatvalues(lm_5_transformed_2), col = 'blue')
+
+```
+
+La eliminación de los puntos con mayor estadístico hatvalues podría mejorar sensiblemente la bondad de ajuste de nuestro modelo. Verfiquemos utilizando la distancia de Cook.
+
+
+```{r}
+
+cooksd_transf <- cooks.distance(lm_5_transformed_2)
+plot(cooksd_transf, pch="*", cex=2, main="Influential Obs by Cooks distance")
+abline(h = 4*mean(cooksd_transf, na.rm=T), col="red")
+
+```
+Estudiemos la colinealidad de nuestro último modelo:
+
+```{r message=FALSE}
+
+library(car)
+vif(lm_5_transformed_2)
+
+```
+Aunque existe colinealidad entre varias de nuestras variables, al haber aumentado el rendimiento de nuestro modelo, conservaremos estas variables. 
+
+```{r}
+
+crPlots(lm_5_transformed_2)
+
+```
+
+
+```{r}
+
+plot(lm_5_transformed_2)
+
+```
+
+Los gráficos anteriores demuestran que se cumplen las hipótesis. A continuación lo comprobaremos de forma analítica:
+
+1. Hipótesis de linealidad
+
+```{r}
+
+raintest(lm_5_transformed_2)
+
+```
+El p-value es mayor que 0.05 por lo que no se puede rechazar la hipótesis nula y por lo tanto, no se puede afirmar que existe linealidad.
+
+2. Los errores tienen media cero
+
+```{r}
+
+t.test(lm_5_transformed_2$residuals)
+
+```
+Podemos afirmar que la media de los residuos es cero.
+
+Comprobamos a continuación la existencia de heterocedasticidad:
+
+3. Los errores tienen varianza constante
+
+```{r}
+
+bptest(lm_5_transformed_2)
+
+```
+El p-valor es muy pequeño por lo que podemos rechazar la hipótesis nula, nuestros errores tienen varianza constante.
+
+4. Los errores son independientes
+
+```{r}
+
+dwtest(lm_5_transformed_2)
+
+```
+
+Como el p-valor obtenido es muy pequeño por lo que nos quedamos con la hipótesis alternativa: nuestros errores no son independientes.
+
+Finalmente, veamos si los errores se distribuyen siguiendo una normal.
+
+5. Ls errores tienen una distribución normal
+
+```{r}
+
+shapiro.test(lm_5_transformed_2$residuals)
+
+```
+
+
+```{r}
+
+ad.test(lm_5_transformed_2$residuals)
+
+```
+En ambos casos obtenemos p-valores pequeños por lo tanto, los errores no distribuyen de forma normal.
+
+
+### Evaluación del modelo
+
+Podemos medir el error calculando el RMSE (del inglés *Root Mean Squared Error*) sobre el único conjunto de datos sobre el que también fue ajustado el modelo. 
+
+```{r}
+
+sqrt(mean(lm_5_transformed_2$residuals**2))
+
+```
+Sin embargo, el emploe de este método nos puede llevar a un modelo sobre-ajustado que no nos garantiza el mismo comportamiento antes datos desconocidos. Por esta razón, utilizaremos técnicas de remuestreo.
+
+Inicialente, tomaremos el 80% de los datos para entrenay y el 20% restante para validar nuestro modelo.
+
+```{r}
+
+p <- 0.80
+trainIndex <- createDataPartition(BostonHousing$medv, p = p, list = F)
+training_data <- BostonHousing[ trainIndex,]
+testdata <- BostonHousing[-trainIndex,]
+
+```
+
+Utilizamos el mismo modelo que creamos en el ejercicio anterior.
+
+$$lm(formula = medv ~ nox + rm + dis + ptratio + lstat + lstat^2 + rm^2)$$
+```{r message=FALSE, echo=FAlSE}
+
+library(ISLR)
+library(caret)
+
+```
+
+#### Leave-one-out cross validation LOOCV
+
+```{r}
+
+train_control_loocv <- trainControl(method="LOOCV") 
+
+```
+
+####  (LGOCV)
+
+```{r}
+
+train_control_lgocv <- trainControl(method="LGOCV", number=10, p = 0.8)
+
+```
+
+#### k-fold CV
+
+```{r}
+
+train_control_kcv <- trainControl(method="cv", number=10) #10- fold
+
+```
+
+
+#### Bootstrap 
+
+```{r}
+
+train_control_boot <- trainControl(method = "boot", number = 100)
+
+```
+
+Creando conjuntos de entrenamiento y validación ...
+
+```{r}
+
+trainIndex <- createDataPartition(training_data$medv, p = p, list = F)
+training_data_2 <- training_data[ trainIndex,]
+validationdata <- training_data[-trainIndex,]
+
+```
+
+Definiendo y entrenando el modelo ...
+
+```{r message=FALSE}
+
+mod_1 <- lm(medv ~ nox + rm + dis + ptratio + lstat + I(lstat^2) + I(rm^2), data = training_data_2)
+RMSE(predict(mod_1, validationdata),testdata$medv)
+RMSE(predict(mod_1, testdata),testdata$medv)
+
+```
+```{r message=FALSE}
+
+model_loocv <- train(medv ~ nox + rm + dis + ptratio + lstat + I(lstat^2) + I(rm^2), data = training_data, trControl = train_control_loocv, method = "lm")
+print(model_loocv)
+RMSE(predict(model_loocv, testdata),testdata$medv)
+
+```
+
+
+```{r message=FALSE}
+
+model_lgocv <- train(medv ~ nox + rm + dis + ptratio + lstat + I(lstat^2) + I(rm^2), data = training_data, trControl = train_control_lgocv, method = "lm")
+print(model_lgocv)
+RMSE(predict(model_lgocv, testdata),testdata$medv)
+
+```
+
+
+```{r message=FALSE}
+
+model_kcv <- train(medv ~ nox + rm + dis + ptratio + lstat + I(lstat^2) + I(rm^2), data = training_data, trControl = train_control_kcv, method = "lm")
+print(model_kcv)
+RMSE(predict(model_kcv, testdata),testdata$medv)
+
+```
+
+```{r message=FALSE}
+
+model_boot <- train(medv ~ nox + rm + dis + ptratio + lstat + I(lstat^2) + I(rm^2), data = training_data, trControl = train_control_boot, method = "lm")
+print(model_boot)
+RMSE(predict(model_boot, testdata),testdata$medv)
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+```{r}
+
+plot(BostonHousing$medv, lm_5$residuals, col = 'blue', xlab = 'medv', ylab = 'residuals' )
+
+```
+
+### Conclusiones

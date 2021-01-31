@@ -1,0 +1,61 @@
+Ejercicio 1
+
+b.) Ajusta un modelo de regresión lineal para predecir logwage usando age, jobclass, race y health_ins.
+
+El modelo se construye sobre la base de 4 variables:
+
+	* age: variable numérica que toma valores de 18 hasta 77 y una persona de 80 años.
+	* jobclass: variable categórica que toma valores Industrial e Information.
+	* race: variable categórica White:2480, Black: 293, Asian: 190, Other: 37 presencia superior de personas blancas
+	* health_ins: variable categórica que toma valores Yes:2083  No:213
+
+
+c) Interpreta los coeficientes del modelo y descríbelo en forma de ecuación. Calcula los intervalos de confianza de los coeficientes al 95%.
+
+logwage = 0.0048*age + 0.1045*jobclass2.Information - 0.1056*race2.Black + 0.0624*race3.Asian - -0.1419*race4.Other - 0.2461*health_ins2. No + 4.4798
+
+
+Con una confianza del 95%, la pendiente se encuentra entre ....
+
+
+El hecho de que la mediana de los residuos tenga un valor de -0.00838 muy cercano a 0, y que el 1er y 3er cuartil sean simétricos sugiere que los residuos se distribuyen conforme a una distribución normal.
+(Nota: Si los residuos se distribuyen conforme a una distribución normal deberíamos esperar que la mediana sea 0 o muy cercana a 0, y que el 1er y 3er cuartil sean simétricos.)
+
+La edad tiene una relación lineal positiva con la variable objetivo pero muy pequeña, por lo que realmente no parece tener mucho peso por sí sola en la estimación del sario de una persona en este dataset.
+
+Ninguno de los predictores tiene un valor muy alto, por lo que se puede decir que ninguno de ellos por sí solos tiene una gran influencia en la estimación del salario. Sin embargo, la variable health.ins2 es la que más alto coeficiente presenta.
+
+En la tercer columna se registra el error estandar para la estimación de cada variable, al que podemos interpretar como el promedio de los residuos.
+
+A partir del coeficiente estimado y el error estándar se computa un valor t, un estadístico de la divergencia entre el estimado que produce el modelo y un estimado hipotético con valor 0. Cuanto más alto es el valor t, mayor la divergencia entre los coeficientes del modelo y el coeficiente igual a cero.
+Por último el p-value de la prueba de hipótesis del estadístico t, que indica la probabilidad de obtener un estimado como el que obtuvimos si el coeficiente real fuera 0. Si la probabilidad de este evento es muy baja podemos rechazar la hipótesis de nulidad según la cuál el verdadero estimado es cero.
+(hipotesis nula: Bi = 0)
+
+Como en todos los casos en p-value es pequeño, podemos rechazar la hipotesis nula de que ese Bi tenga valor 0.
+
+El R^2 de 0.1965 indica que el modelo solo explica un 19.6% de la varianza de la variable dependiente. El resto de la varianza puede atribuirse al azar o a otras variables que no hemos incorporado al modelo.
+
+Por último reporta el estadístico F y el p-value correspondiente. El estadístico F considera a la varianza explicada y la no explicada y es la base de una prueba de hipótesis en la que contrasta a nuestro modelo con uno hipotético en el que las variables no tienen efectos, es decir, con todos los coeficientes iguales a 0 (se conoce como test de linealidad). Como el p-value es pequeño podemos rechazar la hipotesis nula de que todos los Bi= 0 y podemos decir que existe una relación lineal entre la variable objetivo y la variable predictora.
+
+
+d) ¿Cuáles de los predictores tienen una relación estadísticamente significativa con la variable respuesta? En base a esto, construye un modelo reducido que sólo emplee esos predictores, y compara su bondad de ajuste con el modelo anterior
+
+Aunque ninguno de los predictores tiene una relación significativa con la variable objetivo por sí solo, los menos significativos con t-values de 2.624 (race3. Asian) y -2.712 (race4.Other). Analizando los coeficientes de las variables raza la variable que tiene mas incidencia tiene es race4.Black lo cual da idea de que el modelo en cuanto a la raza usa bastante información de esta y  no de las otras
+
+
+Una modificación que emplea menos variables puede ser crea una variable binaria que tome valor 1 si la raza es negra y 0 en otro caso.
+- poner todos los modelos
+
+Con ninguna de las modificaciones parece variar o mejorar mucho el R2 ajustado. Por lo tanto, que estas variables no explican bien la variable dependiente.
+
+Tras aplicar el método de ... para escoger las variables que maximizan el R ajustado, 
+
+
+Tras analizar el grafico de los R-ajustados por cada uno de los modelos variando la cantidad de variables utilizadas para predecir, se observa el codo e 4, por lo tanto se ha decidido seleccionar el modelo que involucra age + jobclass + is_black + health_ins obteniendo un Rajustado de 0.1915.
+
+e) Estudia la existencia de outliers o high leverage points en este último modelo. 
+
+Los high leverage points se les llama a las observaciones que influyen notablemente en el modelo, haciendo que su exclusión cambie notablemente el resultado final.
+
+
+
